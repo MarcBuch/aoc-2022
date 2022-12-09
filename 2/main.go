@@ -24,35 +24,38 @@ import "fmt"
 // 0 if lost
 // 3 if draw
 // 6 if won
+// ---
+// Part Two
+// ---
+// X lose
+// Y draw
+// Z win
 
-func calculateScore(choices []string) int {
+// calcScore takes in the two choices players made (Rock + Paper) and returns the score for the player.
+// - A is the opponents choice
+// - B is the players choice
+func calcScore(a string, b string) int {
 	lose := 0
 	draw := 3
 	win := 6
-	score := 0
-	opponent := choices[0]
-	you := choices[1]
-	var youConvert string
 
+	score := 0
 	// Get score per shape & convert to same set of strings
-	switch you {
+	switch b {
 	// Rock
-	case "X":
+	case "A":
 		score += 1
-		youConvert = "A"
 	// Paper
-	case "Y":
+	case "B":
 		score += 2
-		youConvert = "B"
 	// Scissors
-	case "Z":
+	case "C":
 		score += 3
-		youConvert = "C"
 	}
 
 	// Calc outcome of round
-	if opponent == "A" {
-		switch youConvert {
+	if a == "A" {
+		switch b {
 		case "A":
 			// Rock + Rock = draw
 			score += draw
@@ -63,8 +66,8 @@ func calculateScore(choices []string) int {
 			// Rock + Scissors = lose
 			score += lose
 		}
-	} else if opponent == "B" {
-		switch youConvert {
+	} else if a == "B" {
+		switch b {
 		case "A":
 			// Paper + Rock = lose
 			score += lose
@@ -75,8 +78,8 @@ func calculateScore(choices []string) int {
 			// Paper + Scissors = win
 			score += win
 		}
-	} else if opponent == "C" {
-		switch youConvert {
+	} else if a == "C" {
+		switch b {
 		case "A":
 			// Scissors + Rock = win
 			score += win
@@ -88,8 +91,87 @@ func calculateScore(choices []string) int {
 			score += draw
 		}
 	}
-
 	return score
+}
+
+func partOne(choices []string) int {
+	opponent := choices[0]
+	you := choices[1]
+	var youConvert string
+
+	// Get score per shape & convert to same set of strings
+	switch you {
+	// Rock
+	case "X":
+		youConvert = "A"
+	// Paper
+	case "Y":
+		youConvert = "B"
+	// Scissors
+	case "Z":
+		youConvert = "C"
+	}
+
+	return calcScore(opponent, youConvert)
+}
+
+func partTwo(choices []string) int {
+	opponent := choices[0]
+	plannedMove := choices[1]
+
+	// Debug purpose
+	switch opponent {
+	case "A":
+		fmt.Print("Opponent plays rock, ")
+	case "B":
+		fmt.Print("Opponent plays paper, ")
+	case "C":
+		fmt.Print("Opponent plays scissor, ")
+	}
+	switch plannedMove {
+	case "X":
+		fmt.Print("guide says lose, ")
+	case "Y":
+		fmt.Print("guide says draw, ")
+	case "Z":
+		fmt.Print("guide says win, ")
+	}
+
+	lose := "X"
+	win := "Z"
+	draw := "Y"
+	dic := map[string]map[string]string{
+		"A": {
+			win:  "B",
+			draw: "A",
+			lose: "C",
+		},
+		"B": {
+			win:  "C",
+			draw: "B",
+			lose: "A",
+		},
+		"C": {
+			win:  "A",
+			draw: "C",
+			lose: "B",
+		},
+	}
+
+	// Example, opponent plays rock (A), guide says win (Z)
+	actualMove := dic[opponent][plannedMove]
+
+	// Debug
+	switch actualMove {
+	case "A":
+		fmt.Print("playing rock\n")
+	case "B":
+		fmt.Print("playing paper\n")
+	case "C":
+		fmt.Print("playing scissor\n")
+	}
+
+	return calcScore(opponent, actualMove)
 }
 
 func main() {
@@ -98,7 +180,7 @@ func main() {
 	totalScore := 0
 
 	for _, round := range inputs {
-		totalScore += calculateScore(round)
+		totalScore += partTwo(round)
 	}
 	fmt.Println(totalScore)
 }
