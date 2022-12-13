@@ -14,7 +14,7 @@ import (
 // TODO: In how many assignment pairs does one range fully contain the other?
 
 func main() {
-	fmt.Println(partOne("./input.txt"))
+	partTwo("./input.txt")
 }
 
 func partOne(inputFile string) int {
@@ -32,6 +32,28 @@ func partOne(inputFile string) int {
 	}
 
 	return total
+}
+
+func partTwo(inputFile string) {
+	input := readFile(inputFile)
+
+	var totalPairsOverlap int
+
+	for _, pair := range input {
+		firstPair := resolve(pair[0])
+		secondPair := resolve(pair[1])
+
+		for key := range firstPair {
+			_, isPresent := secondPair[key]
+
+			if isPresent {
+				// it is only required to know if the pairs overlap, not how often
+				totalPairsOverlap++
+				break
+			}
+		}
+	}
+	fmt.Println(totalPairsOverlap)
 }
 
 func contains(pairA map[int]struct{}, pairB map[int]struct{}) bool {
