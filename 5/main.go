@@ -1,6 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+)
 
 /*
     [H]         [D]     [P]
@@ -18,52 +24,89 @@ import "fmt"
 // Crates are moved one at a time
 // After the rearrangement procedure completes, what crate ends up on top of each stack?
 
-var cargo = map[int][]string{
-	1: {"F", "C", "J", "P", "H", "T", "W"},
-	2: {"G", "R", "V", "F", "Z", "J", "B", "H"},
-	3: {"H", "P", "T", "R"},
-	4: {"Z", "S", "N", "P", "H", "T"},
-	5: {"N", "V", "F", "Z", "H", "J", "C", "D"},
-	6: {"P", "M", "G", "F", "W", "D", "Z"},
-	7: {"M", "V", "Z", "W", "S", "J", "D", "P"},
-	8: {"N", "D", "S"},
-	9: {"D", "Z", "S", "F", "M"},
+type Ship struct {
+	cargo []string
+}
+
+func NewShip(slice []string) *Ship {
+	return &Ship{
+		cargo: slice,
+	}
+}
+
+func (s *Ship) pop() string {
+	// pop removes the last item of the ship's cargo
+	index := len(s.cargo) - 1
+	item := s.cargo[index]
+	s.cargo = append(s.cargo[:index], s.cargo[index+1:]...)
+
+	return item
+}
+
+func (s *Ship) add(str string) {
+	s.cargo = append(s.cargo, str)
+}
+
+var shipsexampleShips = map[int]*Ship{
+	1: NewShip([]string{"Z", "N"}),
+	2: NewShip([]string{"M", "C", "D"}),
+	3: NewShip([]string{"P"}),
+}
+
+var ships = map[int]*Ship{
+	1: NewShip([]string{"F", "C", "J", "P", "H", "T", "W"}),
+	2: NewShip([]string{"G", "R", "V", "F", "Z", "J", "B", "H"}),
+	3: NewShip([]string{"H", "P", "T", "R"}),
+	4: NewShip([]string{"Z", "S", "N", "P", "H", "T"}),
+	5: NewShip([]string{"N", "V", "F", "Z", "H", "J", "C", "D"}),
+	6: NewShip([]string{"P", "M", "G", "F", "W", "D", "Z"}),
+	7: NewShip([]string{"M", "V", "Z", "W", "S", "J", "D", "P"}),
+	8: NewShip([]string{"N", "D", "S"}),
+	9: NewShip([]string{"D", "Z", "S", "F", "M"}),
 }
 
 func main() {
 	partOne()
+
 }
 
 func partOne() {
-	// TODO: Read input instructions
-	fmt.Println(cargo)
-	// Test instructions
-	// move 1 from 8 to 2
-	from := cargo[8]
-	to := cargo[2]
-	i := 2
-	from, s := deletetItem(from, i)
-	fmt.Printf("Moving %s from cargo[%d]\n", s, 8)
+	input := readFile("./input.txt")
 
-	// Write changes back
-	cargo[8] = from
-	to = append(to, s)
-	cargo[2] = to
-	fmt.Println(cargo[8])
-	fmt.Println(cargo[2])
-	// Get item from position
-	//
-	//	for i := 1; i <= amount; i++ {
-	//		item := cargo[from][len(cargo[from])-i:]
-	//		fmt.Println(item)
-	//	}
+	for _, instruction := range input {
+		sp := strings.Split(instruction, " ")
+
+		move, _ := strconv.Atoi(sp[1])
+		from, _ := strconv.Atoi(sp[3])
+		to, _ := strconv.Atoi(sp[5])
+
+		for i := 1; i <= move; i++ {
+			item := ships[from].pop()
+			ships[to].add(item)
+		}
+	}
+
+	fmt.Println("The last items for each ship are:")
+	for i := 1; i <= len(ships); i++ {
+		last := ships[i].cargo
+		fmt.Printf("ship[%d]: %v\n", i, last[len(last)-1:])
+	}
 }
 
-func deletetItem(slice []string, i int) ([]string, string) {
-	item := slice[i]
-	slice[i] = slice[len(slice)-1]
-	slice[len(slice)-1] = ""
-	slice = slice[:len(slice)-1]
+func readFile(filepath string) []string {
+	f, err := os.Open(filepath)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	return slice, item
+	var inputSlice []string
+
+	// Parse the file contents
+	sc := bufio.NewScanner(f)
+
+	for sc.Scan() {
+		inputSlice = append(inputSlice, sc.Text())
+	}
+
+	return inputSlice
 }
