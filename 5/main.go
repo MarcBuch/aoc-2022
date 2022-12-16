@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 )
 
 /*
@@ -24,73 +22,137 @@ import (
 // Crates are moved one at a time
 // After the rearrangement procedure completes, what crate ends up on top of each stack?
 
-type Ship struct {
-	cargo []string
-}
-
-func NewShip(slice []string) *Ship {
-	return &Ship{
-		cargo: slice,
-	}
-}
-
-func (s *Ship) pop() string {
-	// pop removes the last item of the ship's cargo
-	index := len(s.cargo) - 1
-	item := s.cargo[index]
-	s.cargo = append(s.cargo[:index], s.cargo[index+1:]...)
-
-	return item
-}
-
-func (s *Ship) add(str string) {
-	s.cargo = append(s.cargo, str)
-}
-
-var shipsexampleShips = map[int]*Ship{
-	1: NewShip([]string{"Z", "N"}),
-	2: NewShip([]string{"M", "C", "D"}),
-	3: NewShip([]string{"P"}),
-}
-
-var ships = map[int]*Ship{
-	1: NewShip([]string{"F", "C", "J", "P", "H", "T", "W"}),
-	2: NewShip([]string{"G", "R", "V", "F", "Z", "J", "B", "H"}),
-	3: NewShip([]string{"H", "P", "T", "R"}),
-	4: NewShip([]string{"Z", "S", "N", "P", "H", "T"}),
-	5: NewShip([]string{"N", "V", "F", "Z", "H", "J", "C", "D"}),
-	6: NewShip([]string{"P", "M", "G", "F", "W", "D", "Z"}),
-	7: NewShip([]string{"M", "V", "Z", "W", "S", "J", "D", "P"}),
-	8: NewShip([]string{"N", "D", "S"}),
-	9: NewShip([]string{"D", "Z", "S", "F", "M"}),
-}
-
 func main() {
-	partOne()
-
+	input := readFile("./input.txt")
+	fmt.Println(partOne(input))
 }
 
-func partOne() {
-	input := readFile("./input.txt")
+func example() string {
+	input := []string{
+		"move 1 from 2 to 1",
+		"move 3 from 1 to 3",
+		"move 2 from 2 to 1",
+		"move 1 from 1 to 2",
+	}
+	crates := []Stack{
+		{},
+		{"Z", "N"},
+		{"M", "C", "D"},
+		{"P"},
+	}
 
-	for _, instruction := range input {
-		sp := strings.Split(instruction, " ")
+	op, err := NewOperator(input)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-		move, _ := strconv.Atoi(sp[1])
-		from, _ := strconv.Atoi(sp[3])
-		to, _ := strconv.Atoi(sp[5])
+	w := Warehouse{
+		Operator: op,
+		Cargo:    crates,
+	}
 
-		for i := 1; i <= move; i++ {
-			item := ships[from].pop()
-			ships[to].add(item)
+	w.OrganizeCrates()
+
+	return w.GetCratesOnTop()
+}
+
+var hardCrates = []Stack{
+	{"F", "C", "J", "P", "H", "T", "W"},
+	{"G", "R", "V", "F", "Z", "J", "B", "H"},
+	{"H", "P", "T", "R"},
+	{"Z", "S", "N", "P", "H", "T"},
+	{"N", "V", "F", "Z", "H", "J", "C", "D"},
+	{"P", "M", "G", "F", "W", "D", "Z"},
+	{"M", "V", "Z", "W", "S", "J", "D", "P"},
+	{"N", "D", "S"},
+	{"D", "Z", "S", "F", "M"},
+}
+
+func partOne(input []string) string {
+	op, err := NewOperator(input)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	w := Warehouse{
+		Operator: op,
+		Cargo:    hardCrates,
+	}
+
+	w.OrganizeCrates()
+
+	return w.GetCratesOnTop()
+}
+
+type Warehouse struct {
+	Operator Operator
+	Cargo    []Stack
+}
+
+func (w *Warehouse) OrganizeCrates() {
+	for _, v := range w.Operator.Instructions {
+		fmt.Printf("move %d from %d to %d\n", v.Count, v.From, v.To)
+		v.From--
+		v.To--
+		w.Operator.Rearrange(&w.Cargo[v.From], &w.Cargo[v.To], v.Count)
+	}
+}
+
+func (w *Warehouse) GetCratesOnTop() string {
+	var str string
+	for _, v := range w.Cargo {
+		if len(v) == 0 {
+			continue
 		}
+		l := len(v) - 1
+		str += v[l]
+	}
+	return str
+}
+
+type Instructions struct {
+	Count int
+	From  int
+	To    int
+}
+
+type Operator struct {
+	Instructions []Instructions
+}
+
+func (*Operator) Rearrange(s, t *Stack, n int) {
+	c := s.Pop(n)
+	c.Reverse()
+	t.Push(c)
+}
+
+func NewOperator(input []string) (Operator, error) {
+	operator := Operator{
+		[]Instructions{},
 	}
 
-	fmt.Println("The last items for each ship are:")
-	for i := 1; i <= len(ships); i++ {
-		last := ships[i].cargo
-		fmt.Printf("ship[%d]: %v\n", i, last[len(last)-1:])
+	for _, v := range input {
+		inst, err := processLine(v)
+		if err != nil {
+			return Operator{}, err
+		}
+		operator.Instructions = append(operator.Instructions, inst)
 	}
+
+	return operator, nil
+}
+
+// processLine parses a line and returns instructions
+func processLine(l string) (Instructions, error) {
+	var s string
+	var a, b, c int
+	_, err := fmt.Sscanf(l, "%s %d %s %d %s %d", &s, &a, &s, &b, &s, &c)
+	if err != nil {
+		return Instructions{}, fmt.Errorf("invalid input\n")
+	}
+	return Instructions{Count: a, From: b, To: c}, nil
 }
 
 func readFile(filepath string) []string {
