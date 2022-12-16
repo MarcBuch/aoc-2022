@@ -24,7 +24,8 @@ import (
 
 func main() {
 	input := readFile("./input.txt")
-	fmt.Println(partOne(input))
+	fmt.Printf("Result Part One: %s\n", partOne(input))
+	fmt.Printf("Result Part Two: %s\n", partTwo(input))
 }
 
 func example() string {
@@ -41,7 +42,7 @@ func example() string {
 		{"P"},
 	}
 
-	op, err := NewOperator(input)
+	op, err := NewOperator(input, false)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -57,20 +58,20 @@ func example() string {
 	return w.GetCratesOnTop()
 }
 
-var hardCrates = []Stack{
-	{"F", "C", "J", "P", "H", "T", "W"},
-	{"G", "R", "V", "F", "Z", "J", "B", "H"},
-	{"H", "P", "T", "R"},
-	{"Z", "S", "N", "P", "H", "T"},
-	{"N", "V", "F", "Z", "H", "J", "C", "D"},
-	{"P", "M", "G", "F", "W", "D", "Z"},
-	{"M", "V", "Z", "W", "S", "J", "D", "P"},
-	{"N", "D", "S"},
-	{"D", "Z", "S", "F", "M"},
-}
-
 func partOne(input []string) string {
-	op, err := NewOperator(input)
+	crates := []Stack{
+		{"F", "C", "J", "P", "H", "T", "W"},
+		{"G", "R", "V", "F", "Z", "J", "B", "H"},
+		{"H", "P", "T", "R"},
+		{"Z", "S", "N", "P", "H", "T"},
+		{"N", "V", "F", "Z", "H", "J", "C", "D"},
+		{"P", "M", "G", "F", "W", "D", "Z"},
+		{"M", "V", "Z", "W", "S", "J", "D", "P"},
+		{"N", "D", "S"},
+		{"D", "Z", "S", "F", "M"},
+	}
+
+	op, err := NewOperator(input, false)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -78,7 +79,36 @@ func partOne(input []string) string {
 
 	w := Warehouse{
 		Operator: op,
-		Cargo:    hardCrates,
+		Cargo:    crates,
+	}
+
+	w.OrganizeCrates()
+
+	return w.GetCratesOnTop()
+}
+
+func partTwo(input []string) string {
+	crates := []Stack{
+		{"F", "C", "J", "P", "H", "T", "W"},
+		{"G", "R", "V", "F", "Z", "J", "B", "H"},
+		{"H", "P", "T", "R"},
+		{"Z", "S", "N", "P", "H", "T"},
+		{"N", "V", "F", "Z", "H", "J", "C", "D"},
+		{"P", "M", "G", "F", "W", "D", "Z"},
+		{"M", "V", "Z", "W", "S", "J", "D", "P"},
+		{"N", "D", "S"},
+		{"D", "Z", "S", "F", "M"},
+	}
+
+	op, err := NewOperator(input, true)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	w := Warehouse{
+		Operator: op,
+		Cargo:    crates,
 	}
 
 	w.OrganizeCrates()
@@ -93,7 +123,7 @@ type Warehouse struct {
 
 func (w *Warehouse) OrganizeCrates() {
 	for _, v := range w.Operator.Instructions {
-		fmt.Printf("move %d from %d to %d\n", v.Count, v.From, v.To)
+		// Decrementing for slices starting at 0
 		v.From--
 		v.To--
 		w.Operator.Rearrange(&w.Cargo[v.From], &w.Cargo[v.To], v.Count)
@@ -120,17 +150,22 @@ type Instructions struct {
 
 type Operator struct {
 	Instructions []Instructions
+	Stacking     bool
 }
 
-func (*Operator) Rearrange(s, t *Stack, n int) {
+func (op *Operator) Rearrange(s, t *Stack, n int) {
 	c := s.Pop(n)
-	c.Reverse()
+	// Reverse is only needed if crates can be moved one by one.
+	if op.Stacking == false {
+		c.Reverse()
+	}
 	t.Push(c)
 }
 
-func NewOperator(input []string) (Operator, error) {
+func NewOperator(input []string, stacking bool) (Operator, error) {
 	operator := Operator{
 		[]Instructions{},
+		stacking,
 	}
 
 	for _, v := range input {
